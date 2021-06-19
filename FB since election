@@ -1,0 +1,37 @@
+#analysing if the US election effected FB using the candlestick chart
+
+import datetime as dt
+import matplotlib.pyplot as plt
+from matplotlib import style
+from mplfinance.original_flavor import candlestick_ohlc
+import matplotlib.dates as mdates
+import pandas as pd
+import pandas_datareader.data as web
+
+#style I'm going to use is ggplot, so
+style.use('ggplot')
+#now the data to be collected is from one month before the election
+start = dt.datetime(2020, 10, 1)
+end = dt.datetime(2021, 6, 1)
+#let me collect it from yahoo finance
+df = web.DataReader('FB', 'yahoo', start, end)
+#let me convert the dataframe to csv file
+df.to_csv('fb.csv')
+#read the csv file using pandas
+df = pd.read_csv('fb.csv', parse_dates=True, index_col=0)
+#now let me resample the data for 10 days, also creating own dataframe i.e df_ohlc
+df_ohlc = df['Adj Close'].resample('10D').ohlc()
+df_volume = df['Volume'].resample('10D').sum()
+#now let me reset the date so that i can convert it to mdates
+df_ohlc = df_ohlc.reset_index()
+#now let me convert the dates to mdates
+df_ohlc['Date'] = df_ohlc['Date'].map(mdates.date2num)
+#now let me plot the axes and subplot2grid is added to plt to add flexibility and plot axes inside, the grid - which is imported by plt
+ax1 = plt.subplot2grid((6,1), (0,0), rowspan=5, colspan=1)
+ax2 = plt.subplot2grid((6,1), (5,0), rowspan=1, colspan=1, sharex=ax1)
+#the below will plot dates on the xaxis
+ax1.xaxis_date()
+#now plot the candlestick in the grid
+candlestick_ohlc(ax1, df_ohlc.values, width=2, colorup='g')
+ax2.fill_between(df_volume.index.map(mdates.date2num), df_volume.values, 0)
+plt.show()
